@@ -1,6 +1,7 @@
 import paho.mqtt.client as mqtt
 import sqlite3
 from time import time
+from azure.iot.device import IoTHubDeviceClient, Message
 
 MQTT_HOST = '192.168.43.220'
 MQTT_PORT = 1883
@@ -10,7 +11,44 @@ TOPIC = 'esp32/+'
  
 DATABASE_FILE = 'mqtt.db'
  
+CONNECTION_STRING = "HostName=azurerasp.azure-devices.net;DeviceId=rasppi;SharedAccessKey=UrfhiURUcD/E14ce8MHUS+BErVabKXykNojjeDFfXPU="
+
+# Define the JSON message to send to IoT Hub.
+From = "Pi"
+To = "Azure"
+MSG_TXT = '{{"Temperatura": {temp},"Presion": {presion}}}'
+
+
+contador=0
 count=0
+ 
+def iothub_client_init():
+    # Create an IoT Hub client
+    client = IoTHubDeviceClient.create_from_connection_string(CONNECTION_STRING)
+    return client
+    
+def iothub_client_telemetry_sample_run():
+    global contador
+    global cliente
+  
+    if(contador==0):
+        cliente = iothub_client_init()
+        print ( "IoT Hub device sending periodic messages, press Ctrl-C to exit" )
+        contador=1
+
+    try:
+        
+        msg_txt_formatted = MSG_TXT.format(temp=ind1,presion=ind2)
+        message = Message(msg_txt_formatted)
+
+        # Send the message.
+        print( "Sending message: {}".format(message) )
+        cliente.send_message(message)
+        print ( "Message successfully sent" )
+
+    except KeyboardInterrupt:
+        print ( "IoTHubClient sample stopped" )    
+
  
 def on_connect(mqtt_client, user_data, flags, conn_result):
     print('resultado del codigo ' + str())
@@ -46,7 +84,7 @@ def on_message(mqtt_client, user_data, message):
          cursor.close()
          count=0
 
-
+         iothub_client_telemetry_sample_run()
 
 
 def main():
@@ -74,5 +112,6 @@ def main():
 
 if __name__ == '__main__':
     print('INICIO')
-    print ( "Press Ctrl-C to exit" )
-    main()
+    print ( "Press Ctrl-C to exit" ) 
+    main() 
+    
